@@ -1,0 +1,23 @@
+{
+  "name": "pulse-workshop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @pulse/dashboard dev",
+    "typecheck": "pnpm -r typecheck",
+    "postinstall": "msw init apps/dashboard/public --save"
+  },
+  "devDependencies": {
+    "msw": "^2.4",
+    "typescript": "^5.5"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "msw": {
+    "workerDirectory": [
+      "apps/dashboard/public"
+    ]
+  }
+}

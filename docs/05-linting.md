@@ -1,0 +1,336 @@
+# Exercise 6: Architectural Linting
+
+## What You're Doing
+
+Nothing currently stops `packages/analytics` from importing the internal `UserList` component directly from `@pulse/users/src/user-list`, bypassing the package's public API. Nothing stops the `@pulse/ui` package from importing application-level code from `apps/dashboard`. These violations compile fine and pass all existing checks. You're going to configure `eslint-plugin-boundaries` to encode the intended dependency graph as lint rules so these violations are caught automatically.
+
+## Why It Matters
+
+In a monorepo, the package dependency graph is your architecture. Packages at the bottom (like `@pulse/shared`) should never import from packages above them (like `apps/dashboard`). Feature packages shouldn't reach into each other's internals. But without enforcement, developers take shortcuts — a quick internal import here, a circular dependency there — and the architecture erodes. `eslint-plugin-boundaries` turns architectural intent into automated checks that run on every save, every commit, and every CI run.
+
+## Prerequisites
+
+- Node.js 20+
+- pnpm 9+
+
+## Setup
+
+```bash
+git checkout 05-linting-start
+pnpm install
+```
+
+---
+
+## Step 1: Demonstrate the Problem
+
+Before adding any rules, prove that the architecture can be violated without consequence.
+
+1. Open `packages/analytics/src/analytics-dashboard.tsx` and add this import at the top:
+
+```typescript
+import { UserList } from "@pulse/users/src/user-list";
+```
+
+2. Save the file. TypeScript doesn't complain — the import resolves through the workspace.
+
+3. Run the linter:
+
+```bash
+pnpm turbo lint
+```
+
+No errors. ESLint has no rules about cross-package imports.
+
+4. Now try an even worse violation. Open `packages/shared/src/api-client.ts` and add:
+
+```typescript
+import { AnalyticsDashboard } from "@pulse/analytics";
+```
+
+This creates a circular dependency — `@pulse/shared` is importing from `@pulse/analytics`, which itself depends on `@pulse/shared`. TypeScript doesn't catch this because workspace resolution handles it. The build might even succeed depending on evaluation order. But it's architecturally wrong.
+
+5. Remove both imports. You're about to make the linter catch them.
+
+> [!NOTE]
+> **Why TypeScript doesn't catch architectural violations:** TypeScript's job is type correctness, not architectural correctness. If a file exists and exports a type-compatible value, TypeScript considers the import valid. It doesn't know or care that `@pulse/shared` shouldn't import from `@pulse/analytics` — that's an architectural constraint, not a type constraint. This is why you need a separate tool (ESLint with boundaries) to enforce the dependency graph.
+
+### Checkpoint
+
+You've confirmed that cross-package internal imports and circular dependencies compile and lint without errors. The architecture is unenforced.
+
+---
+
+## Step 2: Configure Element Types
+
+Open `eslint.config.js`. It should have basic ESLint configuration but no boundaries rules. You're going to add the boundaries plugin and define the element types that make up your architecture.
+
+1. Import the boundaries plugin at the top of the file:
+
+```javascript
+import boundaries from "eslint-plugin-boundaries";
+```
+
+2. Add a configuration object with the plugin and element type settings:
+
+```javascript
+export default [
+  // ... existing config entries
+  {
+    plugins: {
+      boundaries,
+    },
+    settings: {
+      "boundaries/elements": [
+        { type: "app", pattern: "apps/*" },
+        { type: "package", pattern: "packages/*" },
+        { type: "mock", pattern: "mocks/*" },
+        { type: "test", pattern: "tests/*" },
+      ],
+      "boundaries/ignore": ["**/*.test.*", "**/*.spec.*"],
+    },
+  },
+];
+```
+
+> [!NOTE]
+> **What element types represent:** Each entry in `boundaries/elements` defines a category of code in your repository. The `pattern` is a glob that matches directory paths — `apps/*` matches `apps/dashboard` and `apps/legacy`, classifying them as type `"app"`. The `packages/*` pattern matches `packages/analytics`, `packages/ui`, etc., classifying them as type `"package"`. These types are the vocabulary you use in the boundary rules: "an app can import from a package" or "a package cannot import from an app."
+
+> [!NOTE]
+> **Why ignore test files:** The `boundaries/ignore` setting excludes test files from boundary enforcement. Tests often need to import from multiple layers — a test for `@pulse/analytics` might import MSW handlers from `mocks/` and fixtures from `tests/`. Enforcing production-time boundaries on test code would create friction without meaningful architectural benefit.
+
+---
+
+## Step 3: Define Allowed Dependencies
+
+Add the `boundaries/element-types` rule to define which element types are allowed to import from which:
+
+```javascript
+{
+  plugins: {
+    boundaries,
+  },
+  settings: {
+    "boundaries/elements": [
+      { type: "app", pattern: "apps/*" },
+      { type: "package", pattern: "packages/*" },
+      { type: "mock", pattern: "mocks/*" },
+      { type: "test", pattern: "tests/*" },
+    ],
+    "boundaries/ignore": ["**/*.test.*", "**/*.spec.*"],
+  },
+  rules: {
+    "boundaries/element-types": [
+      "error",
+      {
+        default: "disallow",
+        rules: [
+          { from: "app", allow: ["package", "mock"] },
+          { from: "package", allow: ["package"] },
+          { from: "test", allow: ["app", "package", "mock"] },
+          { from: "mock", allow: ["package"] },
+        ],
+      },
+    ],
+  },
+}
+```
+
+### What Each Rule Means
+
+- **`default: "disallow"`** — If no rule explicitly allows an import, it's an error. This is deny-by-default, which is the safe default for architectural enforcement.
+
+- **`from: "app", allow: ["package", "mock"]`** — Applications can import from packages and mocks. They cannot import from other apps (preventing coupling between `apps/dashboard` and `apps/legacy`).
+
+- **`from: "package", allow: ["package"]`** — Packages can import from other packages. They cannot import from apps or mocks. This prevents `@pulse/ui` from depending on `apps/dashboard`, which would create an upward dependency.
+
+- **`from: "test", allow: ["app", "package", "mock"]`** — Tests can import from anything. They need access to apps (to test them), packages (to use them), and mocks (for test data).
+
+- **`from: "mock", allow: ["package"]`** — Mocks can import from packages (to use their types) but not from apps.
+
+> [!IMPORTANT]
+> **The `default: "disallow"` setting is critical.** Without it, any import not covered by a rule would silently pass. With it, you get fail-closed behavior: if someone adds a new element type (say, a `scripts/` directory) without updating the boundary rules, any import from or to that type will be flagged. This forces you to explicitly decide what the new type is allowed to access.
+
+---
+
+## Step 4: Test the Element Type Rules
+
+1. Re-add the architectural violation from Step 1. Open `packages/shared/src/api-client.ts` and add:
+
+```typescript
+import { AnalyticsDashboard } from "@pulse/analytics";
+```
+
+2. Run the linter:
+
+```bash
+pnpm turbo lint
+```
+
+You should now see an error:
+
+```
+error  Importing elements of type "package" is not allowed
+       from elements of type "package" that depend on it
+       boundaries/element-types
+```
+
+Wait — the rule says `from: "package", allow: ["package"]`, so packages *can* import from other packages. But `eslint-plugin-boundaries` is smart enough to detect that `@pulse/shared` is a *dependency* of `@pulse/analytics`, so this import creates a cycle. The rule allows same-level imports but catches circular dependencies.
+
+3. Remove the violation. Add a different one — open `packages/ui/src/button.tsx` and add:
+
+```typescript
+import { App } from "@pulse/dashboard/src/app";
+```
+
+4. Run lint again. This time the error is clear:
+
+```
+error  Importing elements of type "app" is not allowed
+       from elements of type "package"
+       boundaries/element-types
+```
+
+A package cannot import from an app. Remove the violation.
+
+### Checkpoint
+
+`pnpm turbo lint` now catches cross-layer import violations. Packages cannot import from apps, and circular dependencies between packages are flagged.
+
+---
+
+## Step 5: Add the `no-private` Rule
+
+The element-type rules enforce the dependency graph between packages. But they don't prevent reaching into a package's internals. You can still do:
+
+```typescript
+import { StatsBar } from "@pulse/analytics/src/stats-bar";
+```
+
+This bypasses the public API defined in `@pulse/analytics/src/index.ts`. Add a rule to prevent it.
+
+1. Add `boundaries/no-private` to the rules object:
+
+```javascript
+rules: {
+  "boundaries/element-types": [
+    "error",
+    {
+      default: "disallow",
+      rules: [
+        { from: "app", allow: ["package", "mock"] },
+        { from: "package", allow: ["package"] },
+        { from: "test", allow: ["app", "package", "mock"] },
+        { from: "mock", allow: ["package"] },
+      ],
+    },
+  ],
+  "boundaries/no-private": ["error"],
+},
+```
+
+2. Test it. Open `apps/dashboard/src/routes/analytics.tsx` and add:
+
+```typescript
+import { StatsBar } from "@pulse/analytics/src/stats-bar";
+```
+
+3. Run lint:
+
+```bash
+pnpm turbo lint
+```
+
+```
+error  Importing private elements of "@pulse/analytics" is not allowed.
+       Only public entry points can be imported.
+       boundaries/no-private
+```
+
+The import from `@pulse/analytics` (using the public API) works fine. The import from `@pulse/analytics/src/stats-bar` (bypassing the public API) is now an error.
+
+4. Remove the violation.
+
+> [!NOTE]
+> **How `no-private` determines what's private:** The rule looks at the package's entry point — the `main` or `exports` field in `package.json`. If the import path doesn't match a declared entry point, it's considered private. Since `@pulse/analytics` only has `"main": "./src/index.ts"`, the only valid import is `import { ... } from "@pulse/analytics"`. Any deeper path like `@pulse/analytics/src/stats-bar` is private. This is the same boundary you defined architecturally when you chose to export only `AnalyticsDashboard` from `index.ts` — now the linter enforces it.
+
+### Checkpoint
+
+`pnpm turbo lint` passes with no violations. Importing from `@pulse/analytics` works, but importing from `@pulse/analytics/src/stats-bar` triggers a lint error. The public API boundary is enforced.
+
+---
+
+## Step 6: Verify the Complete Configuration
+
+Run the full lint pass to make sure everything is clean:
+
+```bash
+pnpm turbo lint
+```
+
+All packages should pass. The final `eslint.config.js` should include:
+
+```javascript
+import boundaries from "eslint-plugin-boundaries";
+
+export default [
+  // ... existing config entries
+  {
+    plugins: {
+      boundaries,
+    },
+    settings: {
+      "boundaries/elements": [
+        { type: "app", pattern: "apps/*" },
+        { type: "package", pattern: "packages/*" },
+        { type: "mock", pattern: "mocks/*" },
+        { type: "test", pattern: "tests/*" },
+      ],
+      "boundaries/ignore": ["**/*.test.*", "**/*.spec.*"],
+    },
+    rules: {
+      "boundaries/element-types": [
+        "error",
+        {
+          default: "disallow",
+          rules: [
+            { from: "app", allow: ["package", "mock"] },
+            { from: "package", allow: ["package"] },
+            { from: "test", allow: ["app", "package", "mock"] },
+            { from: "mock", allow: ["package"] },
+          ],
+        },
+      ],
+      "boundaries/no-private": ["error"],
+    },
+  },
+];
+```
+
+### Checkpoint
+
+The complete boundary configuration is in place. Apps can import from packages. Packages can import from other packages. No one can import private internals. The architecture is encoded in tooling.
+
+---
+
+## Stretch Goals
+
+- **Banned external imports:** Add an ESLint rule that prevents any package except `@pulse/shared` from importing `lodash` directly. All utility usage must go through shared wrappers. This is how you prevent 12 versions of lodash across your monorepo.
+- **`boundaries/entry-point` rule:** Configure entry point restrictions so that `@pulse/analytics` can only be imported via its top-level package name, not via subpaths like `@pulse/analytics/src/index`.
+- **Custom rule for `displayName`:** Write a simple ESLint rule that requires all exported React components to have a `displayName` property. This helps with debugging in React DevTools and error boundaries.
+
+---
+
+## Solution
+
+The completed implementation is on the next branch:
+
+```bash
+git checkout 06-cicd-start
+```
+
+---
+
+## What's Next
+
+You have type checking, build caching, and architectural linting all working locally. But none of this runs automatically on pull requests. In the next exercise, you'll build a GitHub Actions CI pipeline that uses Turborepo for caching and runs typecheck, lint, test, and build on every push.
