@@ -33,13 +33,14 @@ Start by understanding how the monorepo is organized.
 
 ### What to Look At
 
-1. Open `pnpm-workspace.yaml` — it declares three workspace groups:
+1. Open `pnpm-workspace.yaml` — it declares four workspace groups:
 
 ```yaml
 packages:
   - "apps/*"
   - "packages/*"
   - "mocks"
+  - "codemods"
 ```
 
 2. Open `packages/analytics/package.json` — find the entry point:

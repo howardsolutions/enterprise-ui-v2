@@ -56,7 +56,13 @@ You've run `pnpm -r build` twice and both runs took roughly the same time. There
 
 ---
 
-## Step 2: Create `turbo.json`
+## Step 2: Install Turborepo and Create `turbo.json`
+
+Install Turborepo as a dev dependency at the workspace root:
+
+```bash
+pnpm add -Dw turbo
+```
 
 Create a `turbo.json` file at the root of the repository:
 
@@ -194,13 +200,14 @@ Look at the output carefully:
 
 ```
 @pulse/shared:build: cache hit, replaying logs
+@pulse/legacy:build: cache hit, replaying logs
 @pulse/ui:build: cache miss, executing
 @pulse/analytics:build: cache miss, executing
 @pulse/users:build: cache miss, executing
 @pulse/dashboard:build: cache miss, executing
 ```
 
-`@pulse/shared` is a cache hit — it didn't change and has no dependency on `@pulse/ui`. But `@pulse/ui` is a cache miss (you changed it), and everything that depends on `@pulse/ui` also rebuilds: `@pulse/analytics`, `@pulse/users`, and `@pulse/dashboard`.
+`@pulse/shared` and `@pulse/legacy` are cache hits — they didn't change and have no dependency on `@pulse/ui`. But `@pulse/ui` is a cache miss (you changed it), and everything that depends on `@pulse/ui` also rebuilds: `@pulse/analytics`, `@pulse/users`, and `@pulse/dashboard`.
 
 > [!IMPORTANT]
 > **Turborepo rebuilds dependents, not just the changed package.** This is because the hash includes dependency hashes. When `@pulse/ui` changes, its hash changes. `@pulse/analytics` depends on `@pulse/ui`, so its input hash includes `@pulse/ui`'s hash — which changed. The cascade continues up the graph. This is correct: a change in `@pulse/ui` could affect the build output of any package that imports it. The only safe optimization is to skip packages that provably cannot be affected — packages with no dependency path to the changed package.

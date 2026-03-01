@@ -345,7 +345,6 @@ function applyTransform(input: string): string {
   const result = transform(
     { source: input, path: "test.tsx" },
     { jscodeshift, j: jscodeshift, stats: () => {}, report: () => {} },
-    {},
   );
   return result;
 }
