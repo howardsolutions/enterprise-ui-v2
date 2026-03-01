@@ -520,7 +520,7 @@ export function BigTable(): React.ReactElement {
 
 ### Add Suspense Boundaries
 
-5. Now wrap each component in a Suspense boundary. Update `analytics-dashboard.tsx`:
+6. Now wrap each component in a Suspense boundary. Update `analytics-dashboard.tsx`:
 
 ```typescript
 import React, { Suspense, useState } from "react";
@@ -547,7 +547,7 @@ Wrap each child component:
 </Suspense>
 ```
 
-6. Save and reload the page. Watch the rendering sequence:
+7. Save and reload the page. Watch the rendering sequence:
    - The page shell (sidebar, header) renders immediately
    - Skeleton fallbacks appear for each section
    - `StatsBar` appears after ~200ms as the skeleton is replaced

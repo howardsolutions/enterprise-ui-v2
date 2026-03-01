@@ -68,10 +68,9 @@ export default defineConfig({
 ```typescript
 import { test, expect } from "@playwright/test";
 
-// TODO: Exercise 8 — Write E2E tests
-// Test 1: Navigate from analytics to users page and back, verify data loads
-// Test 2: Navigate to users, verify user data with roles renders
-// Test 3: Navigate to settings, verify organization data loads
+// TODO: Add cross-route navigation tests
+// TODO: Add error handling tests
+// TODO: Add loading state tests
 ```
 
 ### Checkpoint
@@ -140,7 +139,7 @@ test.describe("Cross-route navigation", () => {
 Run the tests:
 
 ```bash
-npx playwright test tests/e2e/cross-remote.spec.ts
+npx playwright test tests/e2e/cross-remote.spec.ts --config tests/e2e/playwright.config.ts
 ```
 
 > [!NOTE]
@@ -194,7 +193,7 @@ test.describe("Analytics with mocked API", () => {
 Run the new tests:
 
 ```bash
-npx playwright test tests/e2e/analytics.spec.ts
+npx playwright test tests/e2e/analytics.spec.ts --config tests/e2e/playwright.config.ts
 ```
 
 ### Checkpoint
@@ -234,7 +233,7 @@ test("record HAR fixture", async ({ page }) => {
 2. Run this test to create the HAR file:
 
 ```bash
-npx playwright test tests/e2e/analytics.spec.ts -g "record HAR"
+npx playwright test tests/e2e/analytics.spec.ts -g "record HAR" --config tests/e2e/playwright.config.ts
 ```
 
 3. Check that the file was created:
@@ -285,7 +284,7 @@ A HAR file exists in `tests/fixtures/`. A test replays the HAR for deterministic
 Run all the tests one more time:
 
 ```bash
-npx playwright test
+npx playwright test --config tests/e2e/playwright.config.ts
 ```
 
 All tests should pass. But consider this scenario: the backend team changes the `/api/analytics/summary` response from `{ totalUsers: number }` to `{ total_users: number }`. Your HAR files still have the old format. Your `page.route()` mocks still return the old format. Your MSW handlers still return the old format. Every test passes. The production app breaks.

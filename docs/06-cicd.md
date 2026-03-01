@@ -205,7 +205,10 @@ Performance budgets catch regressions before they ship. Add a Lighthouse CI step
           lhci autorun
 ```
 
-Create a `lighthouserc.js` file at the root of the repository:
+Create a `lighthouserc.cjs` file at the root of the repository:
+
+> [!NOTE]
+> The `.cjs` extension is required because the root `package.json` sets `"type": "module"`, which treats `.js` files as ESM. The `module.exports` syntax is CommonJS, and the `.cjs` extension tells Node.js to use CommonJS regardless of `"type": "module"`.
 
 ```javascript
 module.exports = {

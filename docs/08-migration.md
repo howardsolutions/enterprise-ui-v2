@@ -100,7 +100,7 @@ export default defineConfig({
 });
 ```
 
-2. Update the legacy app's dev server to run on port 5174. Open `apps/legacy/vite.config.ts`:
+2. Add the base path to the legacy app's dev server. Open `apps/legacy/vite.config.ts` and add `base: "/legacy/"`:
 
 ```typescript
 import { defineConfig } from "vite";
@@ -111,9 +111,12 @@ export default defineConfig({
   server: {
     port: 5174,
   },
-  base: "/legacy/",
+  base: "/legacy/",  // Add this line
 });
 ```
+
+> [!NOTE]
+> The `port: 5174` is already set in the starting configuration. The only change needed here is adding `base: "/legacy/"` so that the legacy app's assets are served under the `/legacy/` path prefix, which is required for the proxy to route them correctly.
 
 3. Start both dev servers. Add a script to the root `package.json` or run them manually:
 

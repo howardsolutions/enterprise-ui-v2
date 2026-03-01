@@ -42,7 +42,10 @@ import { UserList } from "@pulse/users/src/user-list";
 pnpm turbo lint
 ```
 
-No errors. ESLint has no rules about cross-package imports.
+> [!NOTE]
+> You will see a `@typescript-eslint/no-unused-vars` error because the imported symbol is never used — this comes from TypeScript ESLint's recommended rules, not from `eslint-plugin-boundaries`. There are **no boundaries errors**. That is the point: ESLint currently has no opinion about cross-package architectural violations. Ignore the unused-vars error for now; you'll remove the import in step 5.
+
+4. Now try an even worse violation. Open `packages/shared/src/api-client.ts` and add:
 
 4. Now try an even worse violation. Open `packages/shared/src/api-client.ts` and add:
 
