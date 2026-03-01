@@ -35,3 +35,6 @@ mockServiceWorker.js
 coverage/
 test-results/
 playwright-report/
+
+JOURNAL.md
+CHANGES_NEEDED.md
