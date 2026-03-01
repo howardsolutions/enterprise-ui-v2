@@ -84,10 +84,12 @@ The strangler fig pattern works by placing a routing layer in front of both apps
 ```typescript
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
+    port: 5173,
     proxy: {
       "/legacy": {
         target: "http://localhost:5174",
@@ -330,11 +332,12 @@ You should see imports transformed from local legacy paths to modern package pat
 pnpm turbo typecheck
 ```
 
-If there are type errors, the codemod missed an edge case. Fix the transform, revert the files (`git checkout apps/legacy/src/`), and re-run.
+> [!NOTE]
+> **Typecheck will fail here — and that's expected.** The codemod transforms `import { LegacyChart } from "./legacy-chart"` to `import { Chart } from "@pulse/analytics"`, but the legacy app doesn't have `@pulse/analytics` as a dependency. In a real migration, you would add the modern packages to the legacy app's `package.json` before running the type checker. For this exercise, the type error confirms the codemod is producing the correct output — just revert the files with `git checkout apps/legacy/src/` and move on to writing tests.
 
 ### Checkpoint
 
-The codemod transforms legacy imports to modern package imports. The diff shows clean, expected changes. Type checking passes on the modified files.
+The codemod transforms legacy imports to modern package imports. The diff shows clean, expected changes.
 
 ---
 

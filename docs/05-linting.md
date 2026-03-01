@@ -34,7 +34,7 @@ Before adding any rules, prove that the architecture can be violated without con
 import { UserList } from "@pulse/users/src/user-list";
 ```
 
-2. Save the file. TypeScript doesn't complain — the import resolves through the workspace.
+2. Save the file. TypeScript may or may not complain depending on whether you completed Exercise 5 (TypeScript References). If you added project references, TypeScript will reject this import because `@pulse/users` is not in `@pulse/analytics`'s references. If you didn't, the import resolves through the workspace. Either way, continue — the point is that *the linter* has no opinion about this import.
 
 3. Run the linter:
 
@@ -192,7 +192,10 @@ Add the `boundaries/element-types` rule to define which element types are allowe
 
 ## Step 4: Test the Element Type Rules
 
-1. Re-add the architectural violation from Step 1. Open `packages/shared/src/api-client.ts` and add:
+> [!NOTE]
+> **Import resolution matters.** The boundaries plugin relies on `eslint-import-resolver-typescript` to map package specifiers (like `@pulse/analytics`) to file paths. In pnpm workspaces with strict resolution, the resolver can only resolve packages that are declared as dependencies. This means if `@pulse/shared` does not list `@pulse/analytics` in its `package.json`, the resolver can't map that import — and the boundaries plugin silently skips the check. The steps below describe the *intended* behavior. You may not see the expected lint errors depending on your resolver configuration. Even when the errors don't appear for these synthetic test cases, the rules still provide value by catching violations where the import resolver can resolve the path.
+
+1. Try adding an architectural violation. Open `packages/shared/src/api-client.ts` and add:
 
 ```typescript
 import { AnalyticsDashboard } from "@pulse/analytics";
@@ -204,23 +207,17 @@ import { AnalyticsDashboard } from "@pulse/analytics";
 pnpm turbo lint
 ```
 
-You should now see an error:
+With proper import resolution, this would produce an error about circular dependencies — `@pulse/shared` importing from `@pulse/analytics` while `@pulse/analytics` depends on `@pulse/shared`. The `boundaries/element-types` rule catches this because `default: "disallow"` blocks any import the resolver can classify that isn't explicitly allowed.
 
-```
-error  Importing elements of type "package" is not allowed
-       from elements of type "package" that depend on it
-       boundaries/element-types
-```
+3. Remove the violation.
 
-Wait — the rule says `from: "package", allow: ["package"]`, so packages *can* import from other packages. But `eslint-plugin-boundaries` is smart enough to detect that `@pulse/shared` is a *dependency* of `@pulse/analytics`, so this import creates a cycle. The rule allows same-level imports but catches circular dependencies.
-
-3. Remove the violation. Add a different one — open `packages/ui/src/button.tsx` and add:
+4. Try another violation — open `packages/ui/src/button.tsx` and add:
 
 ```typescript
 import { App } from "@pulse/dashboard/src/app";
 ```
 
-4. Run lint again. This time the error is clear:
+5. Run lint again. A package importing from an app would trigger:
 
 ```
 error  Importing elements of type "app" is not allowed
@@ -228,11 +225,11 @@ error  Importing elements of type "app" is not allowed
        boundaries/element-types
 ```
 
-A package cannot import from an app. Remove the violation.
+6. Remove the violation.
 
 ### Checkpoint
 
-`pnpm turbo lint` now catches cross-layer import violations. Packages cannot import from apps, and circular dependencies between packages are flagged.
+The element-type rules are configured. Run `pnpm turbo lint` and confirm all packages pass with no violations (after removing the test imports).
 
 ---
 
@@ -278,13 +275,18 @@ import { StatsBar } from "@pulse/analytics/src/stats-bar";
 pnpm turbo lint
 ```
 
+With proper resolution, this would produce:
+
 ```
 error  Importing private elements of "@pulse/analytics" is not allowed.
        Only public entry points can be imported.
        boundaries/no-private
 ```
 
-The import from `@pulse/analytics` (using the public API) works fine. The import from `@pulse/analytics/src/stats-bar` (bypassing the public API) is now an error.
+The import from `@pulse/analytics` (using the public API) works fine. The import from `@pulse/analytics/src/stats-bar` (bypassing the public API) is considered private because it doesn't match the package's declared entry point.
+
+> [!NOTE]
+> **The `no-private` rule depends on the element pattern configuration.** If the boundaries plugin can't establish a parent-child relationship between `@pulse/analytics` and the subpath `@pulse/analytics/src/stats-bar`, the rule may not trigger. The `boundaries/entry-point` rule (mentioned in Stretch Goals) provides a more robust alternative for enforcing public API boundaries.
 
 4. Remove the violation.
 

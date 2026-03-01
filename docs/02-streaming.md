@@ -185,7 +185,53 @@ export function Chart({ range = "30d" }: { range?: TimeRange }): React.ReactElem
 }
 ```
 
-5. Open `packages/analytics/src/big-table.tsx`. Add local data fetching (check the existing file for the table rendering logic — keep it, but add `useEffect`/`useState` for fetching from `/api/analytics/table?page=1` and show `<LoadingSkeleton variant="table" />` while loading).
+5. Open `packages/analytics/src/big-table.tsx`. Add local data fetching:
+
+```typescript
+import React, { useEffect, useState } from "react";
+import type { TableRow, PaginatedResponse } from "@pulse/shared";
+import { DataTable, LoadingSkeleton } from "@pulse/ui";
+
+const columns = [
+  { key: "user" as const, header: "User" },
+  { key: "action" as const, header: "Action" },
+  {
+    key: "timestamp" as const,
+    header: "Time",
+    render: (value: TableRow[keyof TableRow]) =>
+      new Date(String(value)).toLocaleString(),
+  },
+  {
+    key: "duration" as const,
+    header: "Duration",
+    render: (value: TableRow[keyof TableRow]) => `${value}ms`,
+  },
+];
+
+export function BigTable(): React.ReactElement {
+  const [data, setData] = useState<TableRow[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/analytics/table?page=1")
+      .then((response) => response.json())
+      .then((result: PaginatedResponse<TableRow>) => setData(result.data));
+  }, []);
+
+  if (!data) {
+    return <LoadingSkeleton variant="table" />;
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6">
+      <h3 className="mb-4 font-medium text-gray-900">Recent Activity</h3>
+      <DataTable columns={columns} data={data} keyField="id" />
+    </div>
+  );
+}
+```
+
+> [!NOTE]
+> **The table API returns a paginated response.** The `/api/analytics/table?page=1` endpoint wraps the rows in a `PaginatedResponse<TableRow>` object with `data`, `page`, `pageSize`, and `total` fields. You need to extract `result.data` to get the array of `TableRow` items.
 
 6. Now simplify `analytics-dashboard.tsx`. It no longer fetches data — it's just a layout shell:
 
@@ -342,10 +388,135 @@ export function StatsBar(): React.ReactElement {
 }
 ```
 
-4. Apply the same pattern to `chart.tsx` and `big-table.tsx` — replace `useEffect`/`useState` with `createSuspenseResource`. For the chart, since the resource depends on `range`, you'll need to create the resource inside the component (or use a cache keyed by range).
+4. Update `packages/analytics/src/chart.tsx` to use `createSuspenseResource`. Since the chart data depends on the `range` prop, use a `Map`-based cache so each range gets its own resource:
+
+```typescript
+import React from "react";
+import type { ChartDataPoint, TimeRange } from "@pulse/shared";
+import { createSuspenseResource } from "@pulse/shared";
+
+const chartCache = new Map<
+  TimeRange,
+  ReturnType<typeof createSuspenseResource<ChartDataPoint[]>>
+>();
+
+function getChartResource(range: TimeRange) {
+  if (!chartCache.has(range)) {
+    chartCache.set(
+      range,
+      createSuspenseResource<ChartDataPoint[]>(
+        fetch(`/api/analytics/chart?range=${range}`).then((r) => r.json()),
+      ),
+    );
+  }
+  return chartCache.get(range)!;
+}
+
+export function Chart({
+  range = "30d",
+}: {
+  range?: TimeRange;
+}): React.ReactElement {
+  const data = getChartResource(range).read();
+
+  if (data.length === 0) {
+    return (
+      <div className="flex h-64 items-center justify-center text-gray-400">
+        No data available
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...data.map((point) => point.value));
+  const chartHeight = 200;
+  const chartWidth = 800;
+  const barWidth = Math.max(4, (chartWidth - data.length * 2) / data.length);
+  const gap = 2;
+
+  return (
+    <svg
+      viewBox={`0 0 ${chartWidth} ${chartHeight + 30}`}
+      className="h-64 w-full"
+      role="img"
+      aria-label="Analytics activity chart"
+    >
+      {data.map((point, index) => {
+        const barHeight = (point.value / maxValue) * chartHeight;
+        const x = index * (barWidth + gap);
+        const y = chartHeight - barHeight;
+
+        return (
+          <g key={point.date}>
+            <rect
+              x={x}
+              y={y}
+              width={barWidth}
+              height={barHeight}
+              className="fill-gray-800"
+              rx={2}
+            />
+            {index % Math.ceil(data.length / 6) === 0 && (
+              <text
+                x={x + barWidth / 2}
+                y={chartHeight + 16}
+                textAnchor="middle"
+                className="fill-gray-400 text-[10px]"
+              >
+                {point.date.slice(5)}
+              </text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+```
+
+5. Update `packages/analytics/src/big-table.tsx` to use a module-level Suspense resource:
+
+```typescript
+import React from "react";
+import type { TableRow, PaginatedResponse } from "@pulse/shared";
+import { createSuspenseResource } from "@pulse/shared";
+import { DataTable } from "@pulse/ui";
+
+const columns = [
+  { key: "user" as const, header: "User" },
+  { key: "action" as const, header: "Action" },
+  {
+    key: "timestamp" as const,
+    header: "Time",
+    render: (value: TableRow[keyof TableRow]) =>
+      new Date(String(value)).toLocaleString(),
+  },
+  {
+    key: "duration" as const,
+    header: "Duration",
+    render: (value: TableRow[keyof TableRow]) => `${value}ms`,
+  },
+];
+
+const tableResource = createSuspenseResource<TableRow[]>(
+  fetch("/api/analytics/table?page=1")
+    .then((r) => r.json())
+    .then((result: PaginatedResponse<TableRow>) => result.data),
+);
+
+export function BigTable(): React.ReactElement {
+  const data = tableResource.read();
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6">
+      <h3 className="mb-4 font-medium text-gray-900">Recent Activity</h3>
+      <DataTable columns={columns} data={data} keyField="id" />
+    </div>
+  );
+}
+```
 
 > [!NOTE]
-> **Module-level resources execute immediately.** The `statsResource` is created at import time, which means the fetch starts as soon as the module loads — not when the component renders. This is actually desirable for Suspense: the earlier the fetch starts, the sooner data arrives. For resources that depend on props (like the chart's time range), you'll need to manage resource creation inside the component or use a memoized cache.
+> **Module-level resources execute immediately.** The `statsResource` and `tableResource` are created at import time, which means the fetch starts as soon as the module loads — not when the component renders. This is actually desirable for Suspense: the earlier the fetch starts, the sooner data arrives. For resources that depend on props (like the chart's time range), the `Map`-based cache creates a new resource on first access for each range value.
 
 ### Add Suspense Boundaries
 
