@@ -53,6 +53,9 @@ All three responses are fetched together and passed as props to child components
 
 2. Open `mocks/src/handlers.ts` and find the three analytics endpoints. Note the `delay()` calls — 200ms, 800ms, and 2000ms. These are deterministic, not randomized. Right now, the user waits 2000ms for everything because `Promise.all` blocks until the slowest one resolves.
 
+> [!NOTE]
+> **There are three common patterns for fetching data, and each has a different performance profile.** Sequential fetching (fetch A, then fetch B, then fetch C) creates a "waterfall" where each request waits for the previous one to finish — total wait time is the sum of all response times. `Promise.all` fires all requests simultaneously, eliminating the waterfall, but the UI still blocks until the slowest response arrives — total wait time equals the maximum response time. Per-component fetching (what you are about to implement) also fires requests simultaneously, but each component renders independently as soon as its own data arrives — the user sees results progressively. The waterfall pattern is the worst case and often appears accidentally when data fetching is nested inside sequential `await` calls or `useEffect` chains that depend on each other's results.
+
 ### Refactor Each Component
 
 Move data fetching into each component so it manages its own loading state.
@@ -424,6 +427,9 @@ export function render(req: Request, res: Response) {
 
 > [!NOTE]
 > **This step is conceptual.** Setting up Express middleware or Vite SSR mode is outside the scope of this exercise. The key takeaway is that your Suspense boundaries automatically work with `renderToPipeableStream` — you don't need to change any component code to enable streaming SSR. The architecture you've built in Steps 1-2 is SSR-ready by design.
+
+> [!NOTE]
+> **Hydration is the process where React attaches event listeners and interactive behavior to server-rendered HTML.** When the browser receives the initial HTML from streaming SSR, it is static markup — buttons do not respond to clicks, state changes do not trigger re-renders, and effects do not run. Hydration is when React walks the existing DOM, compares it against the component tree it would have rendered on the client, and "adopts" those DOM nodes by wiring up event handlers, refs, and state management. After hydration completes, the application becomes fully interactive. This is why streaming SSR is valuable even before hydration finishes: the user sees real content immediately (server-rendered HTML), and the page becomes interactive incrementally as React hydrates each Suspense boundary. A hydration mismatch — where the server-rendered HTML differs from what the client would render — causes React to discard the server markup and re-render from scratch, negating the performance benefit.
 
 ### Checkpoint
 

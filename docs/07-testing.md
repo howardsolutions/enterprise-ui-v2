@@ -58,6 +58,9 @@ export default defineConfig({
 > [!NOTE]
 > **The `webServer` configuration:** Playwright can start your dev server automatically before running tests and shut it down after. The `command` runs the dashboard's dev server, and `url` is the health check — Playwright polls this URL until it responds before running any tests. `reuseExistingServer: !process.env.CI` means in local development, if you already have the dev server running, Playwright will use it instead of starting a new one. In CI, it always starts a fresh server.
 
+> [!NOTE]
+> **Mock Service Worker (MSW) intercepts network requests at the Service Worker level, not by monkey-patching `fetch` or `XMLHttpRequest`.** MSW registers a Service Worker in the browser (or uses a request interception library in Node.js) that sits between your application code and the network. When your component calls `fetch("/api/analytics/summary")`, the request is intercepted by the Service Worker before it ever leaves the browser, and MSW's handlers return a mock response as if a real server had responded. Because interception happens at the network level, your application code is completely unaware that the response is mocked — the `fetch` call, the promise resolution, the response parsing all behave identically to a real network request. This is a fundamental advantage over mocking `fetch` directly: you test the actual network code path your application uses in production, including request headers, response status codes, and error handling, without running a real backend server.
+
 2. Open `mocks/src/handlers.ts` — these MSW handlers run during development and serve as the baseline API behavior during tests. The handlers return deterministic data with fixed delays.
 
 3. Open `tests/e2e/cross-remote.spec.ts` — the stub file where you'll write tests:
@@ -203,6 +206,9 @@ The analytics tests pass. They verify that MSW mock data renders correctly and t
 ## Step 4: Record and Replay HAR Fixtures
 
 HAR (HTTP Archive) files capture real network interactions as JSON. Playwright can record these during a test run and replay them later for deterministic results.
+
+> [!NOTE]
+> **HAR (HTTP Archive) is an industry-standard JSON format for recording HTTP interactions.** A HAR file captures every detail of a network request-response cycle: the request URL, method, headers, and body; the response status code, headers, and body; and timing information including DNS lookup, connection, TLS handshake, and time-to-first-byte. The format was originally designed for browser developer tools (you can export HAR files from Chrome DevTools' Network tab) and is supported by virtually every HTTP debugging tool. Playwright's `routeFromHAR` method reads these files and replays the recorded responses when matching requests are detected, making your tests completely independent of any running server. The key advantage over hand-written mocks is fidelity: a HAR file captures the exact response shape, headers, and status codes that a real server produced, so you are testing against realistic data without maintaining mock definitions by hand.
 
 1. Record a HAR file by adding a recording test:
 

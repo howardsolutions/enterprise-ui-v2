@@ -76,6 +76,9 @@ You understand the structural differences between the legacy and modern apps. Th
 
 The strangler fig pattern works by placing a routing layer in front of both apps. New paths go to the modern app, legacy paths go to the legacy app. Over time, you move paths from legacy to modern until the legacy app has no routes left.
 
+> [!NOTE]
+> **The strangler fig pattern is named after the strangler fig tree, which grows by wrapping itself around a host tree.** In nature, a strangler fig seed germinates in the canopy of an existing tree, sends roots down to the ground, and gradually envelops the host trunk with its own root structure. Over years, the fig's roots thicken and fuse until they form a self-supporting lattice, and the original host tree — no longer needed — decays away. Martin Fowler borrowed this metaphor for software migration: instead of rewriting a legacy system from scratch (a notoriously risky approach), you build the new system around the old one, routing traffic to the new system one endpoint or feature at a time. The old system continues to serve any routes that have not been migrated yet, and it shrinks incrementally until it handles no traffic at all and can be safely removed. The pattern is valuable precisely because it eliminates the "big bang" cutover — at every point during the migration, you have a working system, and each individual migration step is small enough to review, test, and revert independently.
+
 1. Open `apps/dashboard/vite.config.ts` and add a proxy configuration that forwards legacy routes to the legacy app's dev server:
 
 ```typescript
@@ -287,6 +290,9 @@ export default function transform(file: FileInfo, api: API) {
 
 > [!NOTE]
 > **How jscodeshift works:** jscodeshift parses JavaScript/TypeScript into an Abstract Syntax Tree (AST), lets you search and transform nodes in that tree, then prints the modified tree back to source code. Unlike regex-based find-and-replace, AST transforms understand the structure of the code — they can distinguish between a `LegacyChart` in an import statement and a `LegacyChart` in a JSX element. The `j.find()` method searches for AST nodes matching a pattern, and `j.replaceWith()` swaps them for new nodes. The transform function receives one file at a time and returns the modified source.
+
+> [!NOTE]
+> **An Abstract Syntax Tree (AST) is a tree-shaped data structure that represents the grammatical structure of source code.** When a parser reads `import { Chart } from "@pulse/analytics"`, it does not see a flat string of characters — it produces a tree where the top node is an `ImportDeclaration`, with child nodes for each imported specifier (`Chart`) and the source string (`"@pulse/analytics"`). Every construct in the language — variable declarations, function calls, JSX elements, binary expressions — becomes a node in this tree, with its sub-expressions as children. Tools like jscodeshift, ESLint, Babel, and Prettier all operate on ASTs rather than raw text because tree operations are structurally aware: you can find "all import declarations whose source starts with `./legacy-`" without worrying about whitespace, comments, or formatting variations that would trip up a regular expression. The "abstract" in AST means the tree omits syntactic details that do not affect meaning (like parentheses used only for grouping or semicolons) and focuses on the logical structure of the program.
 
 ---
 

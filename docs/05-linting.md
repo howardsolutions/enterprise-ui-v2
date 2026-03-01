@@ -52,6 +52,9 @@ import { AnalyticsDashboard } from "@pulse/analytics";
 
 This creates a circular dependency — `@pulse/shared` is importing from `@pulse/analytics`, which itself depends on `@pulse/shared`. TypeScript doesn't catch this because workspace resolution handles it. The build might even succeed depending on evaluation order. But it's architecturally wrong.
 
+> [!NOTE]
+> **Circular dependencies cause three categories of problems that compound as a codebase grows.** First, initialization order becomes unpredictable: when module A imports module B and module B imports module A, one of them will see an incomplete (partially initialized) version of the other at import time, leading to subtle `undefined` errors that only manifest at runtime and depend on which module the bundler happens to evaluate first. Second, bundlers struggle to tree-shake circular dependency graphs because they cannot determine which exports are truly unused — if A references B and B references A, removing either one might break the other, so the bundler conservatively keeps everything, inflating bundle size. Third, circular dependencies make the system harder to reason about: you cannot understand module A without understanding module B, and vice versa, which means every change to either module requires reasoning about both. In a monorepo, a circular dependency between packages is especially dangerous because it defeats the purpose of having separate packages in the first place — they are no longer independently understandable or deployable.
+
 5. Remove both imports. You're about to make the linter catch them.
 
 > [!NOTE]

@@ -59,6 +59,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
 ```
 
+> [!NOTE]
+> **A lockfile records the exact resolved version of every dependency in your project.** When you run `pnpm install`, pnpm resolves version ranges (like `^18.2.0`) to specific versions (like `18.2.0`), downloads them, and records the exact version, integrity hash, and resolution path in `pnpm-lock.yaml`. Subsequent installs read the lockfile and skip resolution entirely, installing exactly the same versions every time. The `--frozen-lockfile` flag goes further: it refuses to install if the lockfile does not match `package.json`, meaning someone added or changed a dependency without running `pnpm install` locally and committing the result. This matters in CI because without a lockfile, `pnpm install` would resolve version ranges against the registry at install time — and a new patch release published between your local test and the CI run could produce different dependency versions, creating the classic "works on my machine" failure.
+
 ### What Each Step Does
 
 - **`actions/checkout@v4`** — Clones the repository. `fetch-depth: 2` fetches the current commit and its parent, which is enough for Turborepo's change detection without downloading the entire git history.
@@ -163,6 +166,9 @@ This creates four parallel jobs — one for each package in the matrix. Each job
 
 > [!IMPORTANT]
 > **Trade-off: parallelism vs. cache sharing.** Matrix jobs run on separate runners, so they don't share the local Turborepo cache. Each job installs dependencies independently. For four small packages, the overhead of four separate `pnpm install` runs might outweigh the parallelism benefit. Matrix strategies become worthwhile when individual test suites take minutes, not seconds. For this workshop, we include it to demonstrate the pattern — in production, measure before committing to it.
+
+> [!NOTE]
+> **Lighthouse is Google's open-source automated tool for auditing web page quality.** It loads your page in a controlled Chromium environment, measures real performance metrics (like Largest Contentful Paint and Cumulative Layout Shift), evaluates accessibility compliance against WCAG guidelines, checks for SEO best practices, and reports on progressive web app capabilities. Each category receives a score from 0 to 100. Lighthouse CI (`@lhci/cli`) wraps Lighthouse for use in continuous integration pipelines: it can start your application server, run multiple audit passes to reduce variance, assert that scores meet defined thresholds, and upload results for historical tracking. Running Lighthouse in CI rather than manually means every pull request is automatically checked against your performance budgets — a regression that adds 500KB of JavaScript or causes a layout shift will fail the pipeline before it reaches production.
 
 ---
 

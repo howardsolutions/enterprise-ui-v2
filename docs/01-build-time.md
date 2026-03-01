@@ -94,6 +94,9 @@ Think about the differences between this setup and the federation approach from 
 | Cross-boundary state | Nanostores (framework-agnostic) | React Context (standard) |
 | Entry point complexity | Async bootstrap + manifest | Regular `import` |
 
+> [!NOTE]
+> **The `workspace:*` protocol is pnpm's way of declaring local dependencies.** When you see `"@pulse/analytics": "workspace:*"` in a `package.json`, it tells pnpm to resolve that dependency to the matching package inside the monorepo workspace rather than fetching it from the npm registry. The `*` means "accept whatever version the local package declares." pnpm creates a symlink from `node_modules/@pulse/analytics` to the actual `packages/analytics/` directory, which is why Vite can resolve imports to TypeScript source files without a build step. When you publish packages to a registry, pnpm automatically replaces `workspace:*` with the real version number at publish time — so this protocol is purely a development-time convenience that disappears in production artifacts.
+
 ### What to Try
 
 1. Open `apps/dashboard/src/shell/auth-provider.tsx` — the auth provider uses standard React Context. Compare this to Exercise 1 where you needed nanostores to cross the federation boundary.
@@ -116,6 +119,9 @@ One of the biggest DX wins of build-time composition is seamless hot reload acro
 In the federation setup, changes to the remote required rebuilding the remote and refreshing the host. Here, Vite watches all workspace packages and processes changes through its own transform pipeline.
 
 4. Revert the change back to `fill-gray-800`
+
+> [!NOTE]
+> **Hot Module Replacement (HMR) swaps changed modules in the running application without a full page reload.** When you save a file, Vite detects the change, recompiles only that module, and sends the update to the browser over a WebSocket connection. The browser replaces the old module in memory and re-renders the affected components while preserving application state — form inputs, scroll position, React component state, and navigation all survive the update. This is fundamentally different from a full page reload, which tears down the entire application, re-fetches all resources, re-parses all JavaScript, and restarts from the initial state. In a monorepo with build-time composition, HMR works across package boundaries because Vite treats all workspace packages as part of a single module graph — a change in `packages/analytics/src/chart.tsx` triggers an HMR update in `apps/dashboard` without any rebuild step.
 
 ### Checkpoint
 

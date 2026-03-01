@@ -36,6 +36,9 @@ pnpm turbo typecheck
 
 Note the total time. Every package runs `tsc --noEmit` independently. There is no incremental state — each run starts from scratch.
 
+> [!NOTE]
+> **`tsc --noEmit` and `tsc --build` serve fundamentally different purposes.** `tsc --noEmit` runs the type checker against a single project and reports errors, but produces no output files — no `.js`, no `.d.ts`, no `.tsbuildinfo`. It is a one-shot validation pass that starts from scratch every time. `tsc --build` (or `tsc -b`) is project-aware and incremental: it reads the `references` array in `tsconfig.json`, builds projects in dependency order, generates declaration files and `.tsbuildinfo` metadata, and on subsequent runs skips any project whose inputs have not changed. The key difference is that `--build` understands the relationship between projects in a monorepo, while `--noEmit` treats each invocation as an isolated type check with no memory of previous runs. You will switch from `--noEmit` to `--build` later in this exercise to unlock incremental cross-package type checking.
+
 2. Run it again:
 
 ```bash
@@ -87,6 +90,9 @@ The `composite` flag tells TypeScript that this project is part of a larger buil
 
 > [!IMPORTANT]
 > **`composite: true` requires `declaration: true`.** When a package is composite, TypeScript generates `.d.ts` declaration files alongside its output. Downstream packages read these declarations instead of re-parsing the source files. This is what makes incremental cross-package checking possible — TypeScript compares the current declaration output against the previous run's `.tsbuildinfo` and only rechecks if the declarations changed. Without `declaration: true`, TypeScript has no stable artifact to compare against.
+
+> [!NOTE]
+> **Declaration files (`.d.ts`) are type-only descriptions of a module's public API.** A `.d.ts` file contains the type signatures of every exported function, class, interface, and variable, but no implementation code — no function bodies, no expressions, no runtime logic. When TypeScript type-checks a file that imports from another package, it reads the declaration file instead of re-parsing and re-analyzing the full source code. This is dramatically faster because declaration files are smaller and already fully resolved — no type inference needed. In a monorepo with `composite: true`, TypeScript generates these declaration files automatically and uses them as the "contract" between projects: if a declaration file has not changed since the last build, downstream projects can skip rechecking entirely.
 
 3. Repeat for every package. Add `"composite": true` and `"declaration": true` to:
    - `packages/ui/tsconfig.json`
