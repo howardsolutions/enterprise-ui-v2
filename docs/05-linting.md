@@ -15,6 +15,8 @@ In a monorepo, the package dependency graph is your architecture. Packages at th
 
 ## Setup
 
+You should be continuing from where Exercise 5 left off. If you need to catch up:
+
 ```bash
 git checkout 05-linting-start
 pnpm install
@@ -84,7 +86,7 @@ export default [
       "boundaries/elements": [
         { type: "app", pattern: "apps/*" },
         { type: "package", pattern: "packages/*" },
-        { type: "mock", pattern: "mocks/*" },
+        { type: "mock", pattern: "mocks" },
         { type: "test", pattern: "tests/*" },
       ],
       "boundaries/ignore": ["**/*.test.*", "**/*.spec.*"],
@@ -92,6 +94,33 @@ export default [
   },
 ];
 ```
+
+3. Add the import resolver configuration so the boundaries plugin can map `@pulse/analytics` to `packages/analytics`. Without this, the plugin can't determine which element type an import belongs to and silently skips enforcement:
+
+```javascript
+{
+  plugins: {
+    boundaries,
+  },
+  settings: {
+    "import/resolver": {
+      typescript: {
+        project: "./tsconfig.base.json",
+      },
+    },
+    "boundaries/elements": [
+      { type: "app", pattern: "apps/*" },
+      { type: "package", pattern: "packages/*" },
+      { type: "mock", pattern: "mocks" },
+      { type: "test", pattern: "tests/*" },
+    ],
+    "boundaries/ignore": ["**/*.test.*", "**/*.spec.*"],
+  },
+}
+```
+
+> [!IMPORTANT]
+> **The import resolver is required.** The `eslint-import-resolver-typescript` package resolves workspace package specifiers like `@pulse/analytics` to their actual file paths (e.g., `packages/analytics/src/index.ts`). Without it, the boundaries plugin sees an import from `@pulse/analytics` but can't map it to the `packages/*` element type, so it skips the check entirely. This is a silent failure — you'll think boundaries are enforced when they're not.
 
 > [!NOTE]
 > **What element types represent:** Each entry in `boundaries/elements` defines a category of code in your repository. The `pattern` is a glob that matches directory paths — `apps/*` matches `apps/dashboard` and `apps/legacy`, classifying them as type `"app"`. The `packages/*` pattern matches `packages/analytics`, `packages/ui`, etc., classifying them as type `"package"`. These types are the vocabulary you use in the boundary rules: "an app can import from a package" or "a package cannot import from an app."
@@ -111,10 +140,15 @@ Add the `boundaries/element-types` rule to define which element types are allowe
     boundaries,
   },
   settings: {
+    "import/resolver": {
+      typescript: {
+        project: "./tsconfig.base.json",
+      },
+    },
     "boundaries/elements": [
       { type: "app", pattern: "apps/*" },
       { type: "package", pattern: "packages/*" },
-      { type: "mock", pattern: "mocks/*" },
+      { type: "mock", pattern: "mocks" },
       { type: "test", pattern: "tests/*" },
     ],
     "boundaries/ignore": ["**/*.test.*", "**/*.spec.*"],
@@ -280,10 +314,15 @@ export default [
       boundaries,
     },
     settings: {
+      "import/resolver": {
+        typescript: {
+          project: "./tsconfig.base.json",
+        },
+      },
       "boundaries/elements": [
         { type: "app", pattern: "apps/*" },
         { type: "package", pattern: "packages/*" },
-        { type: "mock", pattern: "mocks/*" },
+        { type: "mock", pattern: "mocks" },
         { type: "test", pattern: "tests/*" },
       ],
       "boundaries/ignore": ["**/*.test.*", "**/*.spec.*"],
@@ -323,10 +362,11 @@ The complete boundary configuration is in place. Apps can import from packages. 
 
 ## Solution
 
-The completed implementation is on the next branch:
+If you need to catch up, the completed state for this exercise is available on the `06-cicd-start` branch:
 
 ```bash
 git checkout 06-cicd-start
+pnpm install
 ```
 
 ---

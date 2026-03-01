@@ -15,13 +15,15 @@ Without a build orchestrator, every CI run and every local build starts from scr
 
 ## Setup
 
+You should be continuing from where Exercise 3 left off. If you need to catch up:
+
 ```bash
 git checkout 03-monorepo-start
 pnpm install
 ```
 
 > [!NOTE]
-> This branch introduces `packages/users` — a new feature package for user management that wasn't present in earlier exercises. You'll see it in the workspace, and it follows the same pattern as `packages/analytics`: its own `package.json`, `tsconfig.json`, and `src/index.ts` with an explicit public API.
+> At this point the workspace has `packages/users` — a feature package for user management. It follows the same pattern as `packages/analytics`: its own `package.json`, `tsconfig.json`, and `src/index.ts` with an explicit public API.
 
 ---
 
@@ -218,10 +220,10 @@ Turborepo can visualize the task graph it constructs.
 1. Generate the graph:
 
 ```bash
-pnpm turbo build --graph
+pnpm turbo build --graph=graph.html
 ```
 
-This outputs a URL or opens a browser with a visualization of the dependency graph. You should see:
+This generates an HTML file with a visualization of the dependency graph. Open `graph.html` in your browser. You should see:
 
 - `@pulse/shared` at the bottom (no dependencies)
 - `@pulse/ui` one level up (depends on `@pulse/shared`)
@@ -234,10 +236,10 @@ This outputs a URL or opens a browser with a visualization of the dependency gra
 2. Try the filter with the graph:
 
 ```bash
-pnpm turbo build --filter=@pulse/analytics... --graph
+pnpm turbo build --filter=@pulse/analytics... --graph=graph-analytics.html
 ```
 
-This shows only the subgraph relevant to `@pulse/analytics` and its dependencies.
+This generates a graph showing only the subgraph relevant to `@pulse/analytics` and its dependencies.
 
 ### Checkpoint
 
@@ -255,10 +257,11 @@ You can visualize the dependency graph and identify which packages are upstream 
 
 ## Solution
 
-The completed implementation is on the next branch:
+If you need to catch up, the completed state for this exercise is available on the `04-typescript-start` branch:
 
 ```bash
 git checkout 04-typescript-start
+pnpm install
 ```
 
 ---

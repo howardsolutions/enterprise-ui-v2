@@ -15,12 +15,14 @@ A CI pipeline is where architecture decisions become enforceable. The boundary r
 
 ## Setup
 
+You should be continuing from where Exercise 6 left off. If you need to catch up:
+
 ```bash
 git checkout 06-cicd-start
 pnpm install
 ```
 
-Open `.github/workflows/ci.yml` — it's empty or contains only a placeholder comment.
+Open `.github/workflows/ci.yml` — it contains a placeholder with the trigger configuration and a TODO comment.
 
 ---
 
@@ -270,10 +272,11 @@ The CI workflow YAML is valid. It covers type checking, linting, testing, buildi
 
 ## Solution
 
-The completed implementation is on the next branch:
+If you need to catch up, the completed state for this exercise is available on the `07-testing-start` branch:
 
 ```bash
 git checkout 07-testing-start
+pnpm install
 ```
 
 ---

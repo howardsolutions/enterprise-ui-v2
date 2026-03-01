@@ -15,6 +15,8 @@ In a monorepo with 5 packages, a full typecheck takes a few seconds. In a monore
 
 ## Setup
 
+You should be continuing from where Exercise 4 left off. If you need to catch up:
+
 ```bash
 git checkout 04-typescript-start
 pnpm install
@@ -312,10 +314,11 @@ Changing a type in `@pulse/shared` causes all downstream packages to recheck. Ch
 
 ## Solution
 
-The completed implementation is on the next branch:
+If you need to catch up, the completed state for this exercise is available on the `05-linting-start` branch:
 
 ```bash
 git checkout 05-linting-start
+pnpm install
 ```
 
 ---

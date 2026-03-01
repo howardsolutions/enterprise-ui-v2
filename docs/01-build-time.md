@@ -16,10 +16,12 @@ Build-time composition is the default choice for teams that don't need independe
 ## Setup
 
 ```bash
-git checkout 01-build-time-start
 pnpm install
 pnpm dev
 ```
+
+> [!NOTE]
+> This exercise starts from the `main` branch. If you're beginning the workshop fresh, you're already in the right place. If you need to reset, run `git checkout main`.
 
 Open [http://localhost:5173](http://localhost:5173).
 
@@ -171,10 +173,11 @@ Navigation between Analytics and Settings works. The sidebar highlights the acti
 
 ## Solution
 
-The next branch represents the completed state for the following exercise:
+If you need to catch up, the completed state for this exercise is available on the `02-streaming-start` branch:
 
 ```bash
 git checkout 02-streaming-start
+pnpm install
 ```
 
 ---

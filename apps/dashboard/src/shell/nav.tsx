@@ -4,6 +4,7 @@ import { useAuth } from "@pulse/shared";
 
 const navItems = [
   { to: "/", label: "Analytics" },
+  { to: "/users", label: "Users" },
   { to: "/settings", label: "Settings" },
 ];
 

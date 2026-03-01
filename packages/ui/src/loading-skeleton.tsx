@@ -1,6 +1,6 @@
 import React from "react";
 
-type SkeletonVariant = "text" | "card" | "table-row" | "page";
+type SkeletonVariant = "text" | "card" | "table-row" | "page" | "chart" | "table";
 
 interface LoadingSkeletonProps {
   variant?: SkeletonVariant;
@@ -31,6 +31,28 @@ function SkeletonTableRow(): React.ReactElement {
   );
 }
 
+function SkeletonChart(): React.ReactElement {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6">
+      <div className="mb-4 h-5 w-24 animate-pulse rounded bg-gray-200" />
+      <div className="h-64 animate-pulse rounded bg-gray-100" />
+    </div>
+  );
+}
+
+function SkeletonTable(): React.ReactElement {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white">
+      <div className="border-b border-gray-100 px-4 py-3">
+        <div className="h-5 w-32 animate-pulse rounded bg-gray-200" />
+      </div>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <SkeletonTableRow key={index} />
+      ))}
+    </div>
+  );
+}
+
 function SkeletonPage(): React.ReactElement {
   return (
     <div className="space-y-6">
@@ -56,16 +78,22 @@ export function LoadingSkeleton({
     card: SkeletonCard,
     "table-row": SkeletonTableRow,
     page: SkeletonPage,
+    chart: SkeletonChart,
+    table: SkeletonTable,
   };
 
   const Component = components[variant];
 
   if (count === 1) {
-    return <Component />;
+    return (
+      <div data-testid="loading-skeleton">
+        <Component />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="loading-skeleton">
       {Array.from({ length: count }).map((_, index) => (
         <Component key={index} />
       ))}

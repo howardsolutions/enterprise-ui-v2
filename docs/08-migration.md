@@ -15,6 +15,8 @@ Nobody gets to start from scratch. In the real world, you inherit legacy code an
 
 ## Setup
 
+You should be continuing from where Exercise 8 left off. If you need to catch up:
+
 ```bash
 git checkout 08-migration-start
 pnpm install
@@ -410,10 +412,11 @@ Codemod tests pass. Each test verifies a specific transformation scenario. Edge 
 
 ## Solution
 
-The completed implementation is on the `solution` branch:
+If you want to see the fully completed workshop, the solution is available:
 
 ```bash
 git checkout solution
+pnpm install
 ```
 
 ---

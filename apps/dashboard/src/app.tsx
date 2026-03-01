@@ -6,6 +6,7 @@ import { LoadingSkeleton } from "@pulse/ui";
 
 const Analytics = lazy(() => import("./routes/analytics"));
 const Settings = lazy(() => import("./routes/settings"));
+const Users = lazy(() => import("./routes/users"));
 
 export function App(): React.ReactElement {
   return (
@@ -16,6 +17,7 @@ export function App(): React.ReactElement {
             <Routes>
               <Route path="/" element={<Analytics />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/users" element={<Users />} />
             </Routes>
           </Suspense>
         </Layout>

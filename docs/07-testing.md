@@ -15,6 +15,8 @@ In a monorepo architecture, unit tests verify that individual components work in
 
 ## Setup
 
+You should be continuing from where Exercise 7 left off. If you need to catch up:
+
 ```bash
 git checkout 07-testing-start
 pnpm install
@@ -94,8 +96,9 @@ test.describe("Cross-route navigation", () => {
     // Navigate to users
     await page.getByRole("link", { name: "Users" }).click();
 
-    // Wait for the user list to render
-    await expect(page.getByText("Grace Hopper")).toBeVisible();
+    // Wait for the user list to render (use Alan Turing to avoid matching the
+    // auth bar's "Viewing as: Grace Hopper" which causes a strict mode violation)
+    await expect(page.getByText("Alan Turing")).toBeVisible();
 
     // Navigate back to analytics
     await page.getByRole("link", { name: "Analytics" }).click();
@@ -109,14 +112,14 @@ test.describe("Cross-route navigation", () => {
     await page.goto("/users");
 
     // Wait for user list to load
-    await expect(page.getByText("Grace Hopper")).toBeVisible();
+    await expect(page.getByText("Alan Turing")).toBeVisible();
 
     // Click on a user to view their detail
-    await page.getByText("Grace Hopper").click();
+    await page.getByText("Alan Turing").click();
 
     // Verify detail page renders
-    await expect(page.getByText("admin")).toBeVisible();
-    await expect(page.getByText("grace@pulse.dev")).toBeVisible();
+    await expect(page.getByText("member")).toBeVisible();
+    await expect(page.getByText("alan@pulse.dev")).toBeVisible();
   });
 
   test("settings page loads with organization data", async ({ page }) => {
@@ -146,15 +149,30 @@ At least three E2E tests pass. They cover navigation between analytics, users, a
 
 ## Step 3: Write Tests with API Mocking
 
-Playwright can intercept network requests directly, giving you fine-grained control over API responses without touching MSW:
+Playwright can intercept network requests directly using `page.route()`, giving you fine-grained control over API responses per-test.
+
+> [!IMPORTANT]
+> **MSW service worker vs. `page.route()`:** The dashboard uses MSW's `setupWorker` which registers a Service Worker in the browser. This Service Worker intercepts `fetch()` calls *before* they reach the network layer, which means Playwright's `page.route()` never sees them. To use `page.route()` for test-specific overrides, you need to unregister the MSW service worker first. Add this helper to your test file.
 
 Create a new test file `tests/e2e/analytics.spec.ts`:
 
 ```typescript
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+async function unregisterServiceWorkers(page: Page) {
+  await page.evaluate(() =>
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => registrations.forEach((r) => r.unregister())),
+  );
+}
 
 test.describe("Analytics with mocked API", () => {
   test("renders custom summary data", async ({ page }) => {
+    // Unregister MSW's service worker so page.route() can intercept
+    await page.goto("/");
+    await unregisterServiceWorkers(page);
+
     // Intercept the analytics summary API
     await page.route("**/api/analytics/summary", async (route) => {
       await route.fulfill({
@@ -169,6 +187,29 @@ test.describe("Analytics with mocked API", () => {
       });
     });
 
+    // Also mock the other endpoints since MSW is unregistered
+    await page.route("**/api/analytics/chart*", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([]),
+      });
+    });
+    await page.route("**/api/analytics/table*", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [], total: 0, page: 1, pageSize: 10 }),
+      });
+    });
+    await page.route("**/api/users/me", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ id: "usr_01", name: "Test User", email: "test@pulse.dev", role: "admin", createdAt: "2024-01-01" }),
+      });
+    });
+
     await page.goto("/");
 
     // Verify the mocked data renders
@@ -177,6 +218,10 @@ test.describe("Analytics with mocked API", () => {
   });
 
   test("handles API error gracefully", async ({ page }) => {
+    // Unregister MSW's service worker
+    await page.goto("/");
+    await unregisterServiceWorkers(page);
+
     // Intercept the analytics summary API with an error
     await page.route("**/api/analytics/summary", async (route) => {
       await route.fulfill({
@@ -186,16 +231,39 @@ test.describe("Analytics with mocked API", () => {
       });
     });
 
+    // Mock other endpoints
+    await page.route("**/api/analytics/chart*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+    });
+    await page.route("**/api/analytics/table*", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [], total: 0, page: 1, pageSize: 10 }),
+      });
+    });
+    await page.route("**/api/users/me", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ id: "usr_01", name: "Test User", email: "test@pulse.dev", role: "admin", createdAt: "2024-01-01" }),
+      });
+    });
+
     await page.goto("/");
 
-    // Verify the error boundary or error state renders
-    // (the exact text depends on your error boundary implementation)
+    // Verify the error boundary renders
+    // The ErrorBoundary from @pulse/ui shows "Something went wrong"
     await expect(
-      page.getByText(/error|failed|something went wrong/i),
+      page.getByText(/something went wrong/i),
     ).toBeVisible();
   });
 
   test("shows loading state before data arrives", async ({ page }) => {
+    // Unregister MSW's service worker
+    await page.goto("/");
+    await unregisterServiceWorkers(page);
+
     // Intercept the analytics summary API with a long delay
     await page.route("**/api/analytics/summary", async (route) => {
       // Delay the response
@@ -212,6 +280,25 @@ test.describe("Analytics with mocked API", () => {
       });
     });
 
+    // Mock other endpoints
+    await page.route("**/api/analytics/chart*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+    });
+    await page.route("**/api/analytics/table*", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [], total: 0, page: 1, pageSize: 10 }),
+      });
+    });
+    await page.route("**/api/users/me", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ id: "usr_01", name: "Test User", email: "test@pulse.dev", role: "admin", createdAt: "2024-01-01" }),
+      });
+    });
+
     await page.goto("/");
 
     // The skeleton/loading state should be visible while waiting
@@ -221,7 +308,7 @@ test.describe("Analytics with mocked API", () => {
 ```
 
 > [!IMPORTANT]
-> **`page.route()` vs. MSW:** Both intercept network requests, but at different layers. MSW intercepts at the Service Worker level — it runs inside the browser and intercepts `fetch()` calls before they reach the network. `page.route()` intercepts at the Playwright proxy level — it catches requests between the browser and the server. For E2E tests, `page.route()` is often simpler because it doesn't require MSW to be initialized in the test environment. For development, MSW is better because it provides a realistic mock API that works during manual testing too. Use both: MSW for development defaults, `page.route()` for test-specific overrides.
+> **`page.route()` vs. MSW:** Both intercept network requests, but at different layers. MSW intercepts at the Service Worker level — it runs inside the browser and intercepts `fetch()` calls before they reach the network. `page.route()` intercepts at the Playwright proxy level — it catches requests between the browser and the server. Because MSW intercepts first, you must unregister the service worker before `page.route()` can work. Once MSW is unregistered, you need to mock *all* endpoints the page uses, not just the one you want to override. This is more verbose but gives you complete control over test scenarios.
 
 Run the new tests:
 
@@ -340,10 +427,11 @@ All Playwright tests pass. You can articulate the testing pyramid for a monorepo
 
 ## Solution
 
-The completed implementation is on the next branch:
+If you need to catch up, the completed state for this exercise is available on the `08-migration-start` branch:
 
 ```bash
 git checkout 08-migration-start
+pnpm install
 ```
 
 ---
