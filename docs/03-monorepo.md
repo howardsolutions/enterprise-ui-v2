@@ -141,6 +141,7 @@ Watch the output. Turborepo prints each task as it runs, showing the dependency 
 
 ```
 @pulse/shared:build: cache miss, executing
+@pulse/legacy:build: cache miss, executing
 @pulse/ui:build: cache miss, executing
 @pulse/analytics:build: cache miss, executing
 @pulse/users:build: cache miss, executing
@@ -159,13 +160,14 @@ Now the output is different:
 
 ```
 @pulse/shared:build: cache hit, replaying logs
+@pulse/legacy:build: cache hit, replaying logs
 @pulse/ui:build: cache hit, replaying logs
 @pulse/analytics:build: cache hit, replaying logs
 @pulse/users:build: cache hit, replaying logs
 @pulse/dashboard:build: cache hit, replaying logs
 
- Tasks:    5 successful, 5 total
-Cached:    5 cached, 5 total
+ Tasks:    6 successful, 6 total
+Cached:    6 cached, 6 total
   Time:    103ms >>> FULL TURBO
 ```
 

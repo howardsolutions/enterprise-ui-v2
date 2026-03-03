@@ -47,8 +47,6 @@ pnpm turbo lint
 
 4. Now try an even worse violation. Open `packages/shared/src/api-client.ts` and add:
 
-4. Now try an even worse violation. Open `packages/shared/src/api-client.ts` and add:
-
 ```typescript
 import { AnalyticsDashboard } from "@pulse/analytics";
 ```
