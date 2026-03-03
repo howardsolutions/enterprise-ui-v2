@@ -300,6 +300,10 @@ The import from `@pulse/analytics` (using the public API) works fine. The import
 
 `pnpm turbo lint` passes with no violations. Importing from `@pulse/analytics` works, but importing from `@pulse/analytics/src/stats-bar` triggers a lint error. The public API boundary is enforced.
 
+![Lint error from boundary violation](assets/exercise-05-lint-boundary-error.png)
+
+![Clean lint pass with no violations](assets/exercise-05-lint-clean.png)
+
 ---
 
 ## Step 6: Verify the Complete Configuration

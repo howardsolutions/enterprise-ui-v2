@@ -168,6 +168,12 @@ The dashboard has routing — unlike the federation setup which only had a singl
 
 Navigation between Analytics and Settings works. The sidebar highlights the active route. Both pages load data from MSW mock handlers.
 
+![Analytics dashboard page](assets/exercise-01-analytics-dashboard.png)
+
+![Settings page](assets/exercise-01-settings-page.png)
+
+![Users page](assets/exercise-01-users-page.png)
+
 ---
 
 ## Stretch Goals

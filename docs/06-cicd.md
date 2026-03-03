@@ -269,6 +269,10 @@ Or paste it into GitHub's workflow editor (Actions tab in the repository) to che
 
 The CI workflow YAML is valid. It covers type checking, linting, testing, building, and performance budgets. Turborepo handles caching within each job. Remote caching is configured for cross-run artifact sharing.
 
+![Complete CI workflow YAML](assets/exercise-06-ci-workflow.png)
+
+![Lighthouse CI configuration](assets/exercise-06-lighthouse-config.png)
+
 ---
 
 ## Stretch Goals

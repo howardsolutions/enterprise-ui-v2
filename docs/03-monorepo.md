@@ -178,6 +178,10 @@ Every task shows "cache hit." The total time drops to under a second. `FULL TURB
 
 `pnpm turbo build` on a clean cache builds everything. The second run shows `FULL TURBO` and completes in under a second.
 
+![First build with cache misses](assets/exercise-03-turbo-cache-miss.png)
+
+![Second build with FULL TURBO](assets/exercise-03-turbo-full-turbo.png)
+
 ---
 
 ## Step 5: Observe Partial Rebuilds
@@ -251,6 +255,8 @@ This generates a graph showing only the subgraph relevant to `@pulse/analytics` 
 ### Checkpoint
 
 You can visualize the dependency graph and identify which packages are upstream and downstream of any given package.
+
+![Dependency graph visualization](assets/exercise-03-dependency-graph.png)
 
 ---
 

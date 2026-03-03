@@ -70,6 +70,10 @@ export function LegacyAnalytics() {
 
 You understand the structural differences between the legacy and modern apps. The legacy app has no package boundaries, no shared types, and no design system integration.
 
+![Legacy app appearance](assets/exercise-08-legacy-app.png)
+
+![Modern dashboard for comparison](assets/exercise-08-modern-app.png)
+
 ---
 
 ## Step 2: Set Up the Routing Strangler Fig
@@ -410,6 +414,10 @@ pnpm --filter codemods test
 ### Checkpoint
 
 Codemod tests pass. Each test verifies a specific transformation scenario. Edge cases are covered.
+
+![Git diff after running the codemod](assets/exercise-08-codemod-diff.png)
+
+![Codemod tests passing](assets/exercise-08-codemod-tests.png)
 
 ---
 

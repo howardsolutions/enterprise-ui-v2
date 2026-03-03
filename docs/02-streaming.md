@@ -558,6 +558,14 @@ Wrap each child component:
 
 Each section of the analytics dashboard now loads independently via Suspense. The stats bar with its four metric cards appears first, the chart follows about 600ms later, and the table arrives last. Each shows its own skeleton placeholder while loading. The key difference from Step 1: the loading state is now managed by React's Suspense mechanism, not by manual `useState` in each component.
 
+![All skeleton fallbacks visible while data loads](assets/exercise-02-loading-skeletons.png)
+
+![Stats bar rendered while chart and table still show skeletons](assets/exercise-02-stats-loaded.png)
+
+![Stats and chart rendered with table still showing skeleton](assets/exercise-02-chart-loaded.png)
+
+![All sections fully rendered](assets/exercise-02-fully-loaded.png)
+
 ---
 
 ## Step 3: Understanding Streaming SSR with `renderToPipeableStream`

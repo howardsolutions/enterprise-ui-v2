@@ -298,6 +298,10 @@ This is a discussion point, not a hands-on exercise. Think about where in your C
 
 All Playwright tests pass. You can articulate the testing pyramid for a monorepo: unit tests (Vitest) for component logic, E2E tests (Playwright) for integration behavior, and contract tests (Pact) for API compatibility.
 
+![Terminal showing all Playwright tests passing](assets/exercise-07-playwright-results.png)
+
+![Playwright HTML report in browser](assets/exercise-07-playwright-report.png)
+
 ---
 
 ## Stretch Goals
