@@ -4,18 +4,20 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @pulse/dashboard dev",
-    "typecheck": "pnpm -r typecheck",
-    "lint": "pnpm -r lint",
+    "build": "turbo build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
     "postinstall": "msw init apps/dashboard/public --save"
   },
   "devDependencies": {
-    "eslint": "^9.0",
-    "typescript-eslint": "^8.0",
-    "eslint-plugin-boundaries": "^4.0",
-    "eslint-import-resolver-typescript": "^3.6",
     "@playwright/test": "^1.45",
+    "eslint": "^9.0",
+    "eslint-import-resolver-typescript": "^3.6",
+    "eslint-plugin-boundaries": "^4.0",
     "msw": "^2.4",
-    "typescript": "^5.5"
+    "turbo": "^2.9.12",
+    "typescript": "^5.5",
+    "typescript-eslint": "^8.0"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
